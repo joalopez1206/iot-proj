@@ -267,22 +267,28 @@ void app_main(void) {
     // TODO: Decidir bien el socket con el TPID
 
     while(1) {
+        Message m = {};
         switch (current_id_protocol) {
-            case 0:
-                Message m = {};
-                uint16_t len = 12+1;
+            case 0: {
+                uint16_t len = 12 + 1;
                 add_headers(&m, global_id++, 32, current_tl_protocol, current_id_protocol, len);
                 add_random_data_p0(&m);
                 printf("Enviando este mensaje!\n");
                 print_message(&m, len);
                 send(sock, (char *) &m, len, 0);
-                vTaskDelay(5000/portTICK_PERIOD_MS);
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
                 break;
-            case 1:
-                ESP_LOGE(TAG, "Caso %d, No implementado!", current_id_protocol);
-                vTaskDelay(5000/portTICK_PERIOD_MS);
-                goto close;
+            }
+            case 1: {
+                uint16_t len = 12 + 5;
+                add_headers(&m, global_id++, 32, current_tl_protocol, current_id_protocol, len);
+                add_random_data_p1(&m);
+                printf("Enviando este mensaje!\n");
+                print_message(&m, len);
+                send(sock, (char *) &m, len, 0);
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
                 break;
+            }
             case 2:
                 ESP_LOGE(TAG, "Caso %d, No implementado!", current_id_protocol);
                 vTaskDelay(5000/portTICK_PERIOD_MS);
@@ -298,6 +304,11 @@ void app_main(void) {
                 ESP_LOGE(TAG, "Formato equivocado!");
                 break;
         }
+        uint8_t rx_buffer[2];
+        recv(sock,rx_buffer, sizeof(rx_buffer), 0);
+
+        current_id_protocol = rx_buffer[0];
+        current_tl_protocol = rx_buffer[1];
         ESP_LOGI(TAG, "Desperte!");
     }
 
